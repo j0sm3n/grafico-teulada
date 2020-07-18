@@ -131,7 +131,7 @@ def formatea_excel():
     
     for sheet in wb.sheetnames:
         # Tamaño de la columna para los apellidos
-        wb[sheet].column_dimensions['A'].width = 20
+        wb[sheet].column_dimensions['A'].width = 18
         # Tamaño de la columna para el nombre
         wb[sheet].column_dimensions['B'].width = 12
         # Fusiona las celdas para el nombre del mes
@@ -140,7 +140,7 @@ def formatea_excel():
         wb[sheet]['A1'].font = negrita
         for columna in range(3, wb[sheet].max_column + 1):
             letra_col = get_column_letter(columna)
-            wb[sheet].column_dimensions[letra_col].width = 10
+            wb[sheet].column_dimensions[letra_col].width = 6
             for fila in range(1, wb[sheet].max_row + 1):
                 if fila == 1:
                     wb[sheet]['{}{}'.format(letra_col, fila)].style = dia_mes
@@ -150,6 +150,13 @@ def formatea_excel():
                     wb[sheet]['{}{}'.format(letra_col, fila)].alignment = centrado
 
     wb.save(NOMBRE_EXCEL)
+
+
+def crea_bd(agentes, dias):
+    """
+    Crea una base de datos con los turnos de cada agente
+    """
+    pass
 
 
 def main():
