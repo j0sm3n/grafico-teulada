@@ -5,30 +5,31 @@ import pyperclip
 import locale
 import openpyxl
 from openpyxl.utils import get_column_letter
-from openpyxl.styles import Alignment, Font, NamedStyle
+from openpyxl.styles import Alignment, Font, NamedStyle, Color, PatternFill
 
-NOMBRE_EXCEL = 'test.xlsx'
-NUM_AGENTES = 19
+
+NOMBRE_EXCEL = 'test2.xlsx'
 AGENTES = [
-    'OCHOA BAEZA, ANTONIO',
-    'SANJUAN IZQUIERDO, YOLANDA',
-    'DE LA TORRE HERRERA, RICARDO',
-    'BIELSA NOGUES, ERNESTO',
-    'COLLADO MASCAROS, IVAN',
-    'GOMEZ SEGURA, JOSE',
-    'LARA NAVARRO, MANUEL',
-    'PASTOR BERTOMEU, JAIME JUAN',
-    'MENDOZA RODRIGUEZ, JOSE ANTONIO',
-    'MENA DIAZ, VICTOR',
-    'ESTEVE GIMENO, ENRIQUETA',
-    'PEREZ SANTAMARIA, MONICA',
-    'CARMONA GARCIA, DIEGO JOSE',
-    'BOU SERRALTA, MIGUEL ANGEL',
-    'LLOPES MOLINA, JUAN MANUEL',
-    'CABRERA GUERRERO, ENRIQUE',
-    'DE LAMA GONZALEZ, CARLOS',
-    'GOMEZ MARTIN, JAIME',
-    'MORALES ASENSI, ENRIQUE']
+    '677, OCHOA BAEZA, ANTONIO',
+    '2560, SANJUAN IZQUIERDO, YOLANDA',
+    '2082, DE LA TORRE HERRERA, RICARDO',
+    '109, BIELSA NOGUES, ERNESTO',
+    '2049, COLLADO MASCAROS, IVAN',
+    '409, GOMEZ SEGURA, JOSE',
+    '2154, LARA NAVARRO, MANUEL',
+    '1651, PASTOR BERTOMEU, JAIME JUAN',
+    '2076, MENDOZA RODRIGUEZ, JOSE ANTONIO',
+    '597, MENA DIAZ, VICTOR',
+    '2316, ESTEVE GIMENO, ENRIQUETA',
+    '2586, PEREZ SANTAMARIA, MONICA',
+    '159, CARMONA GARCIA, DIEGO JOSE',
+    '133, BOU SERRALTA, MIGUEL ANGEL',
+    '2588, LLOPES MOLINA, JUAN MANUEL',
+    '2369, CABRERA GUERRERO, ENRIQUE',
+    '1204, DE LAMA GONZALEZ, CARLOS',
+    '1472, GOMEZ MARTIN, JAIME',
+    '2210, MORALES ASENSI, ENRIQUE']
+NUM_AGENTES = len(AGENTES)
 MESES = [
     'JULIO 2020',
     'AGOSTO 2020',
@@ -88,9 +89,9 @@ def crea_excel(agentes, dias, mes):
     sheet['A1'] = mes
 
     # Introduce apellidos y nombre de los agentes en las columnas A y B
-    for fila in range(3, 3 + len(AGENTES)):
-        sheet.cell(row=fila, column=1).value = AGENTES[fila - 3].split(',')[0].lstrip()
-        sheet.cell(row=fila, column=2).value = AGENTES[fila - 3].split(',')[1].lstrip()
+    for fila in range(3, 3 + NUM_AGENTES):
+        sheet.cell(row=fila, column=1).value = AGENTES[fila - 3].split(',')[1].lstrip()
+        sheet.cell(row=fila, column=2).value = AGENTES[fila - 3].split(',')[2].lstrip()
 
     # Introduce los turnos del mes en columnas por día, utilizando la
     # primera y segunda fila para el día del mes, y el resto de filas para
@@ -121,6 +122,13 @@ def formatea_excel():
     dia_sem = NamedStyle(name='dia_sem', number_format='ddd')
     dia_sem.font = Font(bold=True)
     dia_sem.alignment = Alignment(horizontal='center', vertical='center')
+    fondo_gris = NamedStyle(
+        name='gris',
+        fill=PatternFill(
+            patternType='solid',
+            fill_type='solid',
+            fgColor=Color('CBCBCB')))
+    letra_roja = Font(color='FF2600')
     
     # Comprueba si existe el fichero
     if not os.path.isfile(NOMBRE_EXCEL):
@@ -130,24 +138,41 @@ def formatea_excel():
         wb = openpyxl.load_workbook(NOMBRE_EXCEL)
     
     for sheet in wb.sheetnames:
-        # Tamaño de la columna para los apellidos
+        # Ancho de la columna para los apellidos
         wb[sheet].column_dimensions['A'].width = 18
-        # Tamaño de la columna para el nombre
+        # Ancho de la columna para el nombre
         wb[sheet].column_dimensions['B'].width = 12
         # Fusiona las celdas para el nombre del mes
         wb[sheet].merge_cells('A1:B2')
         wb[sheet]['A1'].alignment = centrado
         wb[sheet]['A1'].font = negrita
+        # Pinta lineas grises
+        for columna in range(1, wb[sheet].max_column + 1):
+            letra_col = get_column_letter(columna)
+            for fila in range(3, wb[sheet].max_row + 1):
+                if fila % 2 != 0:
+                    wb[sheet][f'{letra_col}{fila}'].style = fondo_gris
+                
         for columna in range(3, wb[sheet].max_column + 1):
             letra_col = get_column_letter(columna)
-            wb[sheet].column_dimensions[letra_col].width = 6
+            # Ancho de la columna para los turnos
+            wb[sheet].column_dimensions[letra_col].width = 7
             for fila in range(1, wb[sheet].max_row + 1):
+                # Fila día del mes
                 if fila == 1:
-                    wb[sheet]['{}{}'.format(letra_col, fila)].style = dia_mes
+                    wb[sheet][f'{letra_col}{fila}'].style = dia_mes
+                    # Si es sábado o domingo utiliza letra roja
+                    if wb[sheet][f'{letra_col}{fila}'].value.weekday() == 5 or wb[sheet][f'{letra_col}{fila}'].value.weekday() == 6:
+                        wb[sheet][f'{letra_col}{fila}'].font = letra_roja
+                # Fila día de la semana
                 elif fila == 2:
-                    wb[sheet]['{}{}'.format(letra_col, fila)].style = dia_sem
+                    wb[sheet][f'{letra_col}{fila}'].style = dia_sem
+                    # Si es sábado o domingo utiliza letra roja
+                    if wb[sheet][f'{letra_col}{fila}'].value.weekday() == 5 or wb[sheet][f'{letra_col}{fila}'].value.weekday() == 6:
+                        wb[sheet][f'{letra_col}{fila}'].font = letra_roja
+                # Filas de turnos
                 else:
-                    wb[sheet]['{}{}'.format(letra_col, fila)].alignment = centrado
+                    wb[sheet][f'{letra_col}{fila}'].alignment = centrado
 
     wb.save(NOMBRE_EXCEL)
 

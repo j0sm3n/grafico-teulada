@@ -1,7 +1,6 @@
 .vscode/settings.json
-test.xlsx
+*.xlsx
 .DS_Store
 pruebas.py
 notas.md
-~$test.xlsx
 grafico_anual.db
