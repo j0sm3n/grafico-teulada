@@ -1,14 +1,14 @@
 import os
-import sys
 from datetime import datetime
 import pyperclip
 import locale
+import sqlite3
 import openpyxl
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Alignment, Font, NamedStyle, Color, PatternFill
 
 
-NOMBRE_EXCEL = 'test2.xlsx'
+NOMBRE_EXCEL = 'test.xlsx'
 AGENTES = [
     '677, OCHOA BAEZA, ANTONIO',
     '2560, SANJUAN IZQUIERDO, YOLANDA',
@@ -38,32 +38,74 @@ MESES = [
     'NOVIEMBRE 2020',
     'DICIEMBRE 2020']
 
+## ESTILOS ##
+negrita = Font(bold=True)
+centrado = Alignment(horizontal='center', vertical='center')
+titulo = NamedStyle(
+    name='titulo',
+    font=Font(bold=True, size=18),
+    alignment=Alignment(horizontal='center', vertical='center'))
+estilo_mes = NamedStyle(
+        # name='dia_mes',
+        number_format='dd mmm',
+        font=Font(bold=True, size=11),
+        alignment=Alignment(horizontal='center', vertical='center'))
+estilo_mes_rojo = NamedStyle(
+        # name='dia_mes_rojo',
+        number_format='dd mmm',
+        font=Font(bold=True, size=11, color='FF2600'),
+        alignment=Alignment(horizontal='center', vertical='center'))
+estilo_sem = NamedStyle(
+        name='dia_sem',
+        number_format='ddd',
+        font=Font(bold=True, size=11),
+        alignment=Alignment(horizontal='center', vertical='center'))
+estilo_sem_rojo = NamedStyle(
+        name='dia_sem_rojo',
+        number_format='ddd',
+        font=Font(bold=True, size=11, color='FF2600'),
+        alignment=Alignment(horizontal='center', vertical='center'))
+fondo_gris = NamedStyle(
+        name='gris',
+        fill=PatternFill(
+            patternType='solid',
+            fill_type='solid',
+            fgColor=Color('CBCBCB')))
+
 
 def lee_portapapeles():
     """
     Lee el contenido del portapapeles y formatea el texto, creando una 
     lista 'dias' con el siguiente contenido:
-    dias[0] -> {'num_mes': '10-jul.'}
-    dias[1] -> {'num_sem': 'vi.'}
+    dias[0] -> {'fecha': '10-jul-2020'}
+    dias[1] -> No se utiliza
     dias[2:] -> {'turnos': ['3', 'D', 'D', '7', '8'...]}
     """
 
     # Para que pueda detectar el nombre de los meses en español
     locale.setlocale(locale.LC_ALL, 'es_ES')
     
+    # Capturamos el portapapeles y creamos una lista, quitando los saltos
+    # de línea y los espacios en blanco.
     texto = pyperclip.paste()
     texto.replace('\n', '')
     texto_lista = texto.split()
+    
+    # Creamos una lista, que contiene diccionarios con la fecha y los turnos
+    # de cada día.
     dias = []
-
     for i in range(0, len(texto_lista), NUM_AGENTES + 2):
         d = texto_lista[i:i + NUM_AGENTES + 2]
-        fecha = datetime.strptime(d[0].replace('.', '-2020'), '%d-%b-%Y')
+        fecha = d[0].replace('.', '-2020')
+        # print(fecha + " -> ", end=' ')
+        fecha = datetime.strptime(fecha, '%d-%b-%Y')
+        # print(fecha.strftime('%d/%m/%Y'))
         dia = {
-            'num_mes': fecha,
-            'num_sem': d[1],
+            'fecha': fecha,
             'turnos': d[2:]
         }
+        # print(f"Fecha: {dia['fecha']}", end=" ")
+        # print(f"Trunos: {dia['turnos']}")
         dias.append(dia)
 
     return dias
@@ -80,111 +122,113 @@ def crea_excel(agentes, dias, mes):
     # En caso de que no exista lo crea.
     else:
         wb = openpyxl.Workbook()
+
     # Crea una nueva hoja con el nombre del mes y año.
     wb.create_sheet(title=mes, index=MESES.index(mes))
+
     # Borra la hoja inicial 'Sheet'
     if 'Sheet' in wb.sheetnames:
         del wb['Sheet']
-    sheet = wb[mes]
-    sheet['A1'] = mes
 
+    # Hoja del mes actual
+    sheet = wb[mes]
+
+    # Título de la hoja (mes y año)
+    sheet['A1'] = mes
+    sheet['A1'].style = titulo
+    # Ancho de la columna para los apellidos
+    sheet.column_dimensions['A'].width = 18
+    # Ancho de la columna para el nombre
+    sheet.column_dimensions['B'].width = 12
+    
     # Introduce apellidos y nombre de los agentes en las columnas A y B
     for fila in range(3, 3 + NUM_AGENTES):
-        sheet.cell(row=fila, column=1).value = AGENTES[fila - 3].split(',')[1].lstrip()
-        sheet.cell(row=fila, column=2).value = AGENTES[fila - 3].split(',')[2].lstrip()
+        # Apellidos
+        apellidos = sheet.cell(row=fila, column=1)
+        apellidos.value = AGENTES[fila - 3].split(',')[1].lstrip()
+        if fila % 2 != 0:
+            apellidos.style = fondo_gris
+        apellidos.font = negrita
+        # Nombre
+        nombre = sheet.cell(row=fila, column=2)
+        nombre.value = AGENTES[fila - 3].split(',')[2].lstrip()
+        if fila % 2 != 0:
+            nombre.style = fondo_gris
+        nombre.font = negrita
 
     # Introduce los turnos del mes en columnas por día, utilizando la
     # primera y segunda fila para el día del mes, y el resto de filas para
     # los turnos de cada agente.
     for columna in range(3, 3 + len(dias)):
+        # Ancho de la columna para los turnos
+        letra_col = get_column_letter(columna)
+        sheet.column_dimensions[letra_col].width = 6
+
+        # Día de la columna actual
         dia = dias[columna - 3]
-        sheet.cell(row=1, column=columna).value = dia['num_mes']
-        sheet.cell(row=2, column=columna).value = dia['num_mes']
+
+        # Día del mes
+        dia_mes = sheet.cell(row=1, column=columna)
+        dia_mes.value = dia['fecha']
+        # Si es sábado o domingo utiliza letra roja
+        if dia_mes.value.weekday() == 5 or dia_mes.value.weekday() == 6:
+            dia_mes.style = estilo_mes_rojo
+        else:
+            dia_mes.style = estilo_mes
+
+        # Día de la semana
+        dia_semana = sheet.cell(row=2, column=columna)
+        dia_semana.value = dia['fecha']
+        # Si es sábado o domingo utiliza letra roja
+        if dia_semana.value.weekday() == 5 or dia_semana.value.weekday() == 6:
+            dia_semana.style = estilo_sem_rojo
+        else:
+            dia_semana.style = estilo_sem
+
+        # Turnos del día actual
         for fila in range(3, 3 + len(dia['turnos'])):
+            turno = sheet.cell(row=fila, column=columna)
             if dia['turnos'][fila - 3].isdigit():
-                sheet.cell(row=fila, column=columna).value = int(dia['turnos'][fila - 3])
+                turno.value = int(dia['turnos'][fila - 3])
             else:
-                sheet.cell(row=fila, column=columna).value = dia['turnos'][fila - 3]
+                turno.value = dia['turnos'][fila - 3]
+            if fila % 2 != 0:
+                turno.style = fondo_gris
+            turno.alignment = centrado
+
+    # Fusiona las celdas para el nombre del mes
+    sheet.merge_cells('A1:B2')
 
     # Graba los datos en el fichero excel.
     wb.save(NOMBRE_EXCEL)
 
 
-def formatea_excel():
-    """
-    Da formato al fichero excel
-    """
-    centrado = Alignment(horizontal='center', vertical='center')
-    negrita = Font(bold=True)
-    dia_mes = NamedStyle(name='dia_mes', number_format='dd mmm')
-    dia_mes.font = Font(bold=True)
-    dia_mes.alignment = Alignment(horizontal='center', vertical='center')
-    dia_sem = NamedStyle(name='dia_sem', number_format='ddd')
-    dia_sem.font = Font(bold=True)
-    dia_sem.alignment = Alignment(horizontal='center', vertical='center')
-    fondo_gris = NamedStyle(
-        name='gris',
-        fill=PatternFill(
-            patternType='solid',
-            fill_type='solid',
-            fgColor=Color('CBCBCB')))
-    letra_roja = Font(color='FF2600')
-    
-    # Comprueba si existe el fichero
-    if not os.path.isfile(NOMBRE_EXCEL):
-        print(f"No se encuentra el fichero excel {NOMBRE_EXCEL}.")
-        sys.exit(1)
-    else:
-        wb = openpyxl.load_workbook(NOMBRE_EXCEL)
-    
-    for sheet in wb.sheetnames:
-        # Ancho de la columna para los apellidos
-        wb[sheet].column_dimensions['A'].width = 18
-        # Ancho de la columna para el nombre
-        wb[sheet].column_dimensions['B'].width = 12
-        # Fusiona las celdas para el nombre del mes
-        wb[sheet].merge_cells('A1:B2')
-        wb[sheet]['A1'].alignment = centrado
-        wb[sheet]['A1'].font = negrita
-        # Pinta lineas grises
-        for columna in range(1, wb[sheet].max_column + 1):
-            letra_col = get_column_letter(columna)
-            for fila in range(3, wb[sheet].max_row + 1):
-                if fila % 2 != 0:
-                    wb[sheet][f'{letra_col}{fila}'].style = fondo_gris
-                
-        for columna in range(3, wb[sheet].max_column + 1):
-            letra_col = get_column_letter(columna)
-            # Ancho de la columna para los turnos
-            wb[sheet].column_dimensions[letra_col].width = 7
-            for fila in range(1, wb[sheet].max_row + 1):
-                # Fila día del mes
-                if fila == 1:
-                    wb[sheet][f'{letra_col}{fila}'].style = dia_mes
-                    # Si es sábado o domingo utiliza letra roja
-                    if wb[sheet][f'{letra_col}{fila}'].value.weekday() == 5 or wb[sheet][f'{letra_col}{fila}'].value.weekday() == 6:
-                        wb[sheet][f'{letra_col}{fila}'].font = letra_roja
-                # Fila día de la semana
-                elif fila == 2:
-                    wb[sheet][f'{letra_col}{fila}'].style = dia_sem
-                    # Si es sábado o domingo utiliza letra roja
-                    if wb[sheet][f'{letra_col}{fila}'].value.weekday() == 5 or wb[sheet][f'{letra_col}{fila}'].value.weekday() == 6:
-                        wb[sheet][f'{letra_col}{fila}'].font = letra_roja
-                # Filas de turnos
-                else:
-                    wb[sheet][f'{letra_col}{fila}'].alignment = centrado
-
-    wb.save(NOMBRE_EXCEL)
-
-
-def crea_bd(agentes, dias):
+def turnos_bd(agentes, dias):
     """
     Crea una base de datos con los turnos de cada agente
     """
-    pass
+    # conexion = sqlite3.connect('grafico_anual.db')
+    # cursor = conexion.cursor()
 
+    for dia in dias:
+        for i in range(NUM_AGENTES):
+            sql = "INSERT INTO turnos_agente VALUES("
+            sql += "null, "
+            sql += f"'{dia['turnos'][i]}', "
+            sql += f"'{agentes[i].split(',')[0]}', "
+            sql += f"'{dia['fecha']}'"
+            print(sql)
+
+
+    # conexion.commit()
+    # conexion.close()
 
 def main():
+    # Si ya existe el fichero nos avisa y termina la ejecución.
+    if os.path.isfile(NOMBRE_EXCEL):
+        print(f'ERROR: El fichero {NOMBRE_EXCEL} ya existe.')
+        exit(1)
+    
     for mes in MESES:
         print(f"Copia el mes {mes} en el portapapeles y pulsa enter para continuar. Pulsa C para cancelar.")
         resp = input("> ")
@@ -193,8 +237,8 @@ def main():
         else:
             dias = lee_portapapeles()
             crea_excel(AGENTES, dias, mes)
+            # turnos_bd(AGENTES,dias)
 
 
 if __name__ == "__main__":
     main()
-    formatea_excel()
