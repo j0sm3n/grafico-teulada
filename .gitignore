@@ -1,6 +1,7 @@
 .vscode/settings.json
-test.xlsx
+*.xlsx
 .DS_Store
 pruebas.py
 notas.md
-~$test.xlsx
+*.swp
+*.db
