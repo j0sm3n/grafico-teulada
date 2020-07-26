@@ -5,6 +5,7 @@ import locale
 import openpyxl
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Alignment, Font, NamedStyle, PatternFill, Color
+from openpyxl.worksheet import page
 
 NOMBRE_EXCEL = 'grafico_maquinistas_31-08_31-12.xlsx'
 AGENTES = [
@@ -35,6 +36,50 @@ MESES = [
     'OCTUBRE 2020',
     'NOVIEMBRE 2020',
     'DICIEMBRE 2020']
+FESTIVOS = [
+    '15-8-2020',
+    '9-10-2020',
+    '12-10-2020',
+    '1-11-2020',
+    '5-12-2020',
+    '25-12-2020']
+
+## ESTILOS ##
+negrita = Font(bold=True)
+centrado = Alignment(horizontal='center', vertical='center')
+titulo = NamedStyle(
+    name='titulo',
+    font=Font(bold=True, size=18),
+    alignment=Alignment(horizontal='center', vertical='center'))
+estilo_mes = NamedStyle(
+    name='dia_mes',
+    number_format='dd mmm',
+    font=Font(bold=True, size=11),
+    alignment=Alignment(horizontal='center', vertical='center'))
+estilo_mes_rojo = NamedStyle(
+    name='dia_mes_rojo',
+    number_format='dd mmm',
+    font=Font(bold=True, size=11, color='FF2600'),
+    alignment=Alignment(horizontal='center', vertical='center'))
+estilo_sem = NamedStyle(
+    name='dia_sem',
+    number_format='ddd',
+    font=Font(bold=True, size=11),
+    alignment=Alignment(horizontal='center', vertical='center'))
+estilo_sem_rojo = NamedStyle(
+    name='dia_sem_rojo',
+    number_format='ddd',
+    font=Font(bold=True, size=11, color='FF2600'),
+    alignment=Alignment(horizontal='center', vertical='center'))
+fondo_gris = NamedStyle(
+    name='fondo_gris',
+    fill=PatternFill(
+        patternType='solid',
+        fill_type='solid',
+        fgColor=Color('CBCBCB')))
+
+# Para que pueda detectar el nombre de los meses en español
+locale.setlocale(locale.LC_ALL, 'es_ES')
 
 
 def lee_portapapeles():
@@ -46,9 +91,6 @@ def lee_portapapeles():
     dias[2:] -> {'turnos': ['3', 'D', 'D', '7', '8'...]}
     """
 
-    # Para que pueda detectar el nombre de los meses en español
-    locale.setlocale(locale.LC_ALL, 'es_ES')
-    
     # Capturamos el portapapeles y creamos una lista, quitando los saltos
     # de línea y los espacios en blanco.
     texto = pyperclip.paste()
@@ -92,6 +134,13 @@ def crea_excel(agentes, dias, mes):
     # Hoja del mes actual
     sheet = wb[mes]
 
+    # TODO Tamaño y orientación de la página
+    # openpyxl.worksheet.worksheet.Worksheet.set_printer_settings(sheet, paper_size=70, orientation='landscape')
+    # page.PrintPageSetup(worksheet=sheet, orientation='landscape', paperHeight='420mm', paperWidth='594mm')
+    sheet.page_setup.paperHeight = '420mm'
+    sheet.page_setup.paperWidth = '594mm'
+    sheet.page_setup.orientation = 'landscape'
+
     # Título de la hoja (mes y año)
     sheet['A1'] = mes
 
@@ -121,40 +170,6 @@ def formatea_excel():
     """
     Da formato al fichero excel
     """
-    ## ESTILOS ##
-    negrita = Font(bold=True)
-    centrado = Alignment(horizontal='center', vertical='center')
-    titulo = NamedStyle(
-        name='titulo',
-        font=Font(bold=True, size=18),
-        alignment=Alignment(horizontal='center', vertical='center'))
-    estilo_mes = NamedStyle(
-        name='dia_mes',
-        number_format='dd mmm',
-        font=Font(bold=True, size=11),
-        alignment=Alignment(horizontal='center', vertical='center'))
-    estilo_mes_rojo = NamedStyle(
-        name='dia_mes_rojo',
-        number_format='dd mmm',
-        font=Font(bold=True, size=11, color='FF2600'),
-        alignment=Alignment(horizontal='center', vertical='center'))
-    estilo_sem = NamedStyle(
-        name='dia_sem',
-        number_format='ddd',
-        font=Font(bold=True, size=11),
-        alignment=Alignment(horizontal='center', vertical='center'))
-    estilo_sem_rojo = NamedStyle(
-        name='dia_sem_rojo',
-        number_format='ddd',
-        font=Font(bold=True, size=11, color='FF2600'),
-        alignment=Alignment(horizontal='center', vertical='center'))
-    fondo_gris = NamedStyle(
-        name='gris',
-        fill=PatternFill(
-            patternType='solid',
-            fill_type='solid',
-            fgColor=Color('CBCBCB')))
-    
     # Comprueba si existe el fichero
     if not os.path.isfile(NOMBRE_EXCEL):
         print(f"No se encuentra el fichero excel {NOMBRE_EXCEL}.")
@@ -204,6 +219,28 @@ def formatea_excel():
     wb.save(NOMBRE_EXCEL)
 
 
+def pinta_festivos():
+    """
+    Recorre la lista FESTIVOS y para pintar de rojo cada fecha
+    """
+    # Comprueba si existe el fichero
+    if not os.path.isfile(NOMBRE_EXCEL):
+        print(f"No se encuentra el fichero excel {NOMBRE_EXCEL}.")
+        sys.exit(1)
+    else:
+        wb = openpyxl.load_workbook(NOMBRE_EXCEL)
+
+    for fecha in FESTIVOS:
+        fecha = datetime.strptime(fecha, '%d-%m-%Y')
+        nombre_hoja = fecha.strftime('%B %Y').upper()
+        ws = wb[nombre_hoja]
+        columna = int(fecha.strftime('%d')) + 2
+        ws.cell(column=columna, row= 1).style = 'dia_mes_rojo'
+        ws.cell(column=columna, row= 2).style = 'dia_sem_rojo'
+        
+    wb.save(NOMBRE_EXCEL)
+
+
 def main():
     for mes in MESES:
         print(f"Copia el mes {mes} en el portapapeles y pulsa enter para continuar. Pulsa C para cancelar.")
@@ -214,6 +251,7 @@ def main():
             dias = lee_portapapeles()
             crea_excel(AGENTES, dias, mes)
     formatea_excel()
+    pinta_festivos()
 
 
 if __name__ == "__main__":
