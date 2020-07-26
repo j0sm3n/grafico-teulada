@@ -3,5 +3,10 @@
 .DS_Store
 pruebas.py
 notas.md
+<<<<<<< HEAD
 *.swp
 *.db
+=======
+grafico_anual.db
+*.swp
+>>>>>>> 3b76847d58fc3834fc58f53c442bbd14131e750b
