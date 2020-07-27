@@ -137,7 +137,7 @@ def crea_excel(agentes, dias, mes):
     # Tamaño y orientación de la página
     sheet.sheet_properties.pageSetUpPr.fitToPage = True
     sheet.page_setup.paperWidth = '170mm'
-    sheet.page_setup.paperHeight = '620mm'
+    sheet.page_setup.paperHeight = '520mm'
     sheet.page_setup.orientation = 'landscape'
     sheet.page_setup.fitToWidth = 1
     
@@ -179,9 +179,9 @@ def formatea_excel():
     
     for sheet in wb.sheetnames:
         # Tamaño de la columna para los apellidos
-        wb[sheet].column_dimensions['A'].width = 24
+        wb[sheet].column_dimensions['A'].width = 23
         # Tamaño de la columna para el nombre
-        wb[sheet].column_dimensions['B'].width = 16
+        wb[sheet].column_dimensions['B'].width = 15
         # Fusiona las celdas para el nombre del mes
         wb[sheet].merge_cells('A1:B2')
         wb[sheet]['A1'].style = titulo
