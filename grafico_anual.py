@@ -79,7 +79,7 @@ fondo_gris = NamedStyle(
         fgColor=Color('CBCBCB')))
 
 # Para que pueda detectar el nombre de los meses en español
-locale.setlocale(locale.LC_ALL, 'es_ES')
+locale.setlocale(locale.LC_ALL, 'es_ES.utf-8')
 
 
 def lee_portapapeles():
@@ -134,13 +134,13 @@ def crea_excel(agentes, dias, mes):
     # Hoja del mes actual
     sheet = wb[mes]
 
-    # TODO Tamaño y orientación de la página
-    # openpyxl.worksheet.worksheet.Worksheet.set_printer_settings(sheet, paper_size=70, orientation='landscape')
-    # page.PrintPageSetup(worksheet=sheet, orientation='landscape', paperHeight='420mm', paperWidth='594mm')
-    sheet.page_setup.paperHeight = '420mm'
-    sheet.page_setup.paperWidth = '594mm'
+    # Tamaño y orientación de la página
+    sheet.sheet_properties.pageSetUpPr.fitToPage = True
+    sheet.page_setup.paperWidth = '170mm'
+    sheet.page_setup.paperHeight = '620mm'
     sheet.page_setup.orientation = 'landscape'
-
+    sheet.page_setup.fitToWidth = 1
+    
     # Título de la hoja (mes y año)
     sheet['A1'] = mes
 
@@ -179,9 +179,9 @@ def formatea_excel():
     
     for sheet in wb.sheetnames:
         # Tamaño de la columna para los apellidos
-        wb[sheet].column_dimensions['A'].width = 19
+        wb[sheet].column_dimensions['A'].width = 24
         # Tamaño de la columna para el nombre
-        wb[sheet].column_dimensions['B'].width = 13
+        wb[sheet].column_dimensions['B'].width = 16
         # Fusiona las celdas para el nombre del mes
         wb[sheet].merge_cells('A1:B2')
         wb[sheet]['A1'].style = titulo
@@ -199,7 +199,8 @@ def formatea_excel():
 
         for columna in range(3, wb[sheet].max_column + 1):
             letra_col = get_column_letter(columna)
-            wb[sheet].column_dimensions[letra_col].width = 6
+            # Tamaño de las columnas de los días
+            wb[sheet].column_dimensions[letra_col].width = 7
             for fila in range(1, wb[sheet].max_row + 1):
                 if fila == 1: # Día del mes
                     dia_mes = wb[sheet][f'{letra_col}{fila}']
