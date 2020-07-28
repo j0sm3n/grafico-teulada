@@ -78,6 +78,43 @@ fondo_gris = NamedStyle(
         fill_type='solid',
         fgColor=Color('CBCBCB')))
 
+# Colores turnos
+ROJO = 'E38BAF'
+VERDE = 'C8F0BD'
+AMARILLO = 'FFFFA6'
+AZUL = '90D1DB'
+NARANJA = 'FFB940'
+manyana = NamedStyle(
+    name='manyana',
+    fill=PatternFill(
+        patternType='solid',
+        fill_type='solid',
+        fgColor=Color(AMARILLO)))
+tarde = NamedStyle(
+    name='tarde',
+    fill=PatternFill(
+        patternType='solid',
+        fill_type='solid',
+        fgColor=Color(AZUL)))
+festivo = NamedStyle(
+    name='festivo',
+    fill=PatternFill(
+        patternType='solid',
+        fill_type='solid',
+        fgColor=Color(VERDE)))
+FG = NamedStyle(
+    name='fg',
+    fill=PatternFill(
+        patternType='solid',
+        fill_type='solid',
+        fgColor=Color(NARANJA)))
+vacaciones = NamedStyle(
+    name='vacaciones',
+    fill=PatternFill(
+        patternType='solid',
+        fill_type='solid',
+        fgColor=Color(ROJO)))
+
 # Para que pueda detectar el nombre de los meses en español
 locale.setlocale(locale.LC_ALL, 'es_ES.utf-8')
 
@@ -186,14 +223,11 @@ def formatea_excel():
         wb[sheet].merge_cells('A1:B2')
         wb[sheet]['A1'].style = titulo
 
-        # Lineas impares en gris
-        for fila in range(3, 3 + NUM_AGENTES):
-            if fila % 2 != 0:
-                for celda in wb[sheet][fila]:
-                    celda.style = fondo_gris
-
-        # Nombres y apellidos en negrita
+        # Nombres y apellidos en negrita, y lineas impares con fondo gris
         for fila in range(3, 3+ NUM_AGENTES):
+            if fila % 2 != 0:
+                wb[sheet][f'A{fila}'].style = fondo_gris
+                wb[sheet][f'B{fila}'].style = fondo_gris
             wb[sheet][f'A{fila}'].font = negrita
             wb[sheet][f'B{fila}'].font = negrita
 
@@ -226,8 +260,8 @@ def pinta_festivos():
     """
     # Comprueba si existe el fichero
     if not os.path.isfile(NOMBRE_EXCEL):
-        print(f"No se encuentra el fichero excel {NOMBRE_EXCEL}.")
-        sys.exit(1)
+        print(f"\nERROR: No se encuentra el fichero excel {NOMBRE_EXCEL}.")
+        exit(1)
     else:
         wb = openpyxl.load_workbook(NOMBRE_EXCEL)
 
@@ -242,17 +276,34 @@ def pinta_festivos():
     wb.save(NOMBRE_EXCEL)
 
 
+def pinta_turnos():
+    """
+    Recorre todas las hojas y pinta los turnos con un color dependiendo de si es de
+    mañana, tarde, festivo o FG.
+    """
+    # Comprueba si existe el fichero
+    if not os.path.isfile(NOMBRE_EXCEL):
+        print(f"\nERROR: No se encuentra el fichero excel {NOMBRE_EXCEL}.")
+        exit(1)
+    else:
+        wb = openpyxl.load_workbook(NOMBRE_EXCEL)
+
+    for ws in wb.sheetnames:
+        print(ws)
+
+
 def main():
-    for mes in MESES:
-        print(f"Copia el mes {mes} en el portapapeles y pulsa enter para continuar. Pulsa C para cancelar.")
-        resp = input("> ")
-        if resp == 'c' or resp == 'C':
-            break
-        else:
-            dias = lee_portapapeles()
-            crea_excel(AGENTES, dias, mes)
-    formatea_excel()
-    pinta_festivos()
+    # for mes in MESES:
+    #     print(f"Copia el mes {mes} en el portapapeles y pulsa enter para continuar. Pulsa C para cancelar.")
+    #     resp = input("> ")
+    #     if resp == 'c' or resp == 'C':
+    #         break
+    #     else:
+    #         dias = lee_portapapeles()
+    #         crea_excel(AGENTES, dias, mes)
+    # formatea_excel()
+    # pinta_festivos()
+    pinta_turnos()
 
 
 if __name__ == "__main__":
