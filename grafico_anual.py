@@ -42,6 +42,10 @@ FESTIVOS = [
     '12-10-2020',
     '8-12-2020',
     '25-12-2020']
+TURNOS_M = [1, 2, 3, 4, 8]
+TURNOS_T = [5, 6, 7, 9]
+TURNOS_D = ['D', 'DT']
+TURNOS_FG = ['FGV', 'FGI', 'FO']
 
 ## ESTILOS ##
 negrita = Font(bold=True)
@@ -76,6 +80,43 @@ fondo_gris = NamedStyle(
         patternType='solid',
         fill_type='solid',
         fgColor=Color('CBCBCB')))
+
+# Colores turnos
+ROJO = 'E38BAF'
+VERDE = 'C8F0BD'
+AMARILLO = 'FFFFA6'
+AZUL = '90D1DB'
+NARANJA = 'FFB940'
+manyana = NamedStyle(
+    name='manyana',
+    fill=PatternFill(
+        patternType='solid',
+        fill_type='solid',
+        fgColor=Color(AMARILLO)))
+tarde = NamedStyle(
+    name='tarde',
+    fill=PatternFill(
+        patternType='solid',
+        fill_type='solid',
+        fgColor=Color(AZUL)))
+festivo = NamedStyle(
+    name='festivo',
+    fill=PatternFill(
+        patternType='solid',
+        fill_type='solid',
+        fgColor=Color(VERDE)))
+fg = NamedStyle(
+    name='fg',
+    fill=PatternFill(
+        patternType='solid',
+        fill_type='solid',
+        fgColor=Color(NARANJA)))
+vacaciones = NamedStyle(
+    name='vacaciones',
+    fill=PatternFill(
+        patternType='solid',
+        fill_type='solid',
+        fgColor=Color(ROJO)))
 
 # Para que pueda detectar el nombre de los meses en español
 locale.setlocale(locale.LC_ALL, 'es_ES.utf-8')
@@ -260,10 +301,40 @@ def pinta_festivos():
     wb.save(NOMBRE_EXCEL)
 
 
+def pinta_turnos():
+    """
+    Recorre todas las hojas y pinta los turnos con un color dependiendo de si es de
+    mañana, tarde, festivo o FG.
+    """
+    # Comprueba si existe el fichero
+    if not os.path.isfile(NOMBRE_EXCEL):
+        print(f"\nERROR: No se encuentra el fichero excel {NOMBRE_EXCEL}.")
+        exit(1)
+    else:
+        wb = openpyxl.load_workbook(NOMBRE_EXCEL)
+
+    for sheet in wb.sheetnames:
+        ws = wb[sheet]
+        rng = ws[f'C3:{get_column_letter(ws.max_column)}21']
+        for fila in rng:
+            for celda in fila:
+                if celda.value in TURNOS_M:
+                    celda.style = 'manyana'
+                elif celda.value in TURNOS_T:
+                    celda.style = 'tarde'
+                elif celda.value in TURNOS_D:
+                    celda.style = 'festivo'
+                elif celda.value in TURNOS_FG:
+                    celda.style = 'fg'
+                celda.alignment = centrado
+    wb.save(NOMBRE_EXCEL)
+
+
 def main():
-    txt_a_excel()
-    formatea_excel()
-    pinta_festivos()
+    # txt_a_excel()
+    # formatea_excel()
+    # pinta_festivos()
+    pinta_turnos()
 
 
 if __name__ == "__main__":
