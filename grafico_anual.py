@@ -7,6 +7,7 @@ from openpyxl.utils import get_column_letter
 from openpyxl.styles import Alignment, Font, NamedStyle, PatternFill, Color
 from openpyxl.worksheet import page
 
+NOMBRE_TXT = 'turnos.txt'
 NOMBRE_EXCEL = 'grafico_maquinistas_31-08_31-12.xlsx'
 AGENTES = [
     '677, OCHOA BAEZA, ANTONIO',
@@ -37,11 +38,9 @@ MESES = [
     'NOVIEMBRE 2020',
     'DICIEMBRE 2020']
 FESTIVOS = [
-    '15-8-2020',
     '9-10-2020',
     '12-10-2020',
-    '1-11-2020',
-    '5-12-2020',
+    '8-12-2020',
     '25-12-2020']
 
 ## ESTILOS ##
@@ -82,39 +81,57 @@ fondo_gris = NamedStyle(
 locale.setlocale(locale.LC_ALL, 'es_ES.utf-8')
 
 
-def lee_portapapeles():
+def pdf_a_txt():
     """
-    Lee el contenido del portapapeles y formatea el texto, creando una 
-    lista 'dias' con el siguiente contenido:
-    dias[0] -> {'num_mes': '10-jul.'}
-    dias[1] -> {'num_sem': 'vi.'}
-    dias[2:] -> {'turnos': ['3', 'D', 'D', '7', '8'...]}
+    Crea un archivo de texto con las hojas del pdf que se van copiando
+    al portapapeles una a una. Al finalizar, en las pruebas realizadas,
+    el fichero resultante no ha sido perfecto, teniendo que ejecutar la
+    funcion lee_turnos varias veces para localizar los fallos y corregirlos
+    manualmente. Los fallos han sido saltos de línea que no correspondían
+    con el final del mes, y espacios en blanco. En ambos casos ha bastado
+    con hacer una busqueda y sustitución por comas.
     """
+    with open(NOMBRE_TXT, 'a') as file_obj:
+        for mes in MESES:
+            input(f'Copia el mes {mes} y pulsa Enter')
+            texto = pyperclip.paste()
+            texto = texto.replace('\n', ',')
+            file_obj.write(texto + '\n')
 
-    # Capturamos el portapapeles y creamos una lista, quitando los saltos
-    # de línea y los espacios en blanco.
-    texto = pyperclip.paste()
-    texto.replace('\n', '')
-    texto_lista = texto.split()
-    
-    # Creamos una lista, que contiene diccionarios con la fecha y los turnos
-    # de cada día.
-    dias = []
-    for i in range(0, len(texto_lista), NUM_AGENTES + 2):
-        d = texto_lista[i:i + NUM_AGENTES + 2]
-        fecha = datetime.strptime(d[0].replace('.', '-2020'), '%d-%b-%Y')
-        dia = {
-            'fecha': fecha,
-            'turnos': d[2:]
-        }
-        dias.append(dia)
 
-    return dias
+def txt_a_excel():
+    """
+    Lee el contenido del fichero turnos.txt y crea una lista con un diccionario
+    por cada día del mes, que incluyen la fecha y una lista con los turnos de
+    esa fecha.
+
+    Cuando se ha creado la lista con todos los turnos del mes, se llama a la
+    función crea_excel, pasando esta lista como parámetro.
+    """
+    meses = (mes for mes in open(NOMBRE_TXT))
+    for nombre_mes in MESES:
+        lista_dias = []
+        mes_gen = (s.replace('\n', '').split(',') for s in meses)
+        mes = next(mes_gen)
+        for i in range(0, len(mes), NUM_AGENTES + 2):
+            d = mes[i:i + NUM_AGENTES + 2]
+            fecha = datetime.strptime(d[0].replace('.', '-2020'), '%d-%b-%Y')
+            dia = {
+                'fecha': fecha,
+                'turnos': d[2:]
+            }
+            lista_dias.append(dia)
+        crea_excel(AGENTES, lista_dias, nombre_mes)
 
 
 def crea_excel(agentes, dias, mes):
     """
     Crea un fichero excel con los datos obtenidos anteriormente.
+
+        Parametros:
+            agentes (list) : Lista de los agentes.
+            dias (list) : Lista con diccionarios de cada día del mes.
+            mes (str) : Mes y año.
     """
 
     # Si ya existe el fichero lo abre.
@@ -154,9 +171,10 @@ def crea_excel(agentes, dias, mes):
     # los turnos de cada agente.
     for columna in range(3, 3 + len(dias)):
         dia = dias[columna - 3]
-        sheet.cell(row=1, column=columna).value = dia['fecha']
-        sheet.cell(row=2, column=columna).value = dia['fecha']
-        for fila in range(3, 3 + len(dia['turnos'])):
+        fecha = dia['fecha']
+        sheet.cell(row=1, column=columna).value = fecha
+        sheet.cell(row=2, column=columna).value = fecha
+        for fila in range(3, 3 + len(AGENTES)):
             if dia['turnos'][fila - 3].isdigit():
                 sheet.cell(row=fila, column=columna).value = int(dia['turnos'][fila - 3])
             else:
@@ -222,7 +240,7 @@ def formatea_excel():
 
 def pinta_festivos():
     """
-    Recorre la lista FESTIVOS y para pintar de rojo cada fecha
+    Recorre la lista FESTIVOS para pintar de rojo cada fecha.
     """
     # Comprueba si existe el fichero
     if not os.path.isfile(NOMBRE_EXCEL):
@@ -243,14 +261,7 @@ def pinta_festivos():
 
 
 def main():
-    for mes in MESES:
-        print(f"Copia el mes {mes} en el portapapeles y pulsa enter para continuar. Pulsa C para cancelar.")
-        resp = input("> ")
-        if resp == 'c' or resp == 'C':
-            break
-        else:
-            dias = lee_portapapeles()
-            crea_excel(AGENTES, dias, mes)
+    txt_a_excel()
     formatea_excel()
     pinta_festivos()
 
