@@ -55,22 +55,22 @@ titulo = NamedStyle(
     font=Font(bold=True, size=18),
     alignment=Alignment(horizontal='center', vertical='center'))
 estilo_mes = NamedStyle(
-    name='dia_mes',
+    name='estilo_mes',
     number_format='dd mmm',
     font=Font(bold=True, size=11),
     alignment=Alignment(horizontal='center', vertical='center'))
 estilo_mes_rojo = NamedStyle(
-    name='dia_mes_rojo',
+    name='estilo_mes_rojo',
     number_format='dd mmm',
     font=Font(bold=True, size=11, color='FF2600'),
     alignment=Alignment(horizontal='center', vertical='center'))
 estilo_sem = NamedStyle(
-    name='dia_sem',
+    name='estilo_sem',
     number_format='ddd',
     font=Font(bold=True, size=11),
     alignment=Alignment(horizontal='center', vertical='center'))
 estilo_sem_rojo = NamedStyle(
-    name='dia_sem_rojo',
+    name='estilo_sem_rojo',
     number_format='ddd',
     font=Font(bold=True, size=11, color='FF2600'),
     alignment=Alignment(horizontal='center', vertical='center'))
@@ -85,8 +85,10 @@ fondo_gris = NamedStyle(
 ROJO = 'E38BAF'
 VERDE = 'C8F0BD'
 AMARILLO = 'FFFFA6'
-AZUL = '90D1DB'
-NARANJA = 'FFB940'
+# AZUL = '90D1DB'
+AZUL = '66CCFF'
+# NARANJA = 'FFB940'
+NARANJA = 'FF9900'
 manyana = NamedStyle(
     name='manyana',
     fill=PatternFill(
@@ -181,6 +183,18 @@ def crea_excel(agentes, dias, mes):
     # En caso de que no exista lo crea.
     else:
         wb = openpyxl.Workbook()
+        # Inicializa los estilos
+        wb.add_named_style(titulo)
+        wb.add_named_style(estilo_mes)
+        wb.add_named_style(estilo_mes_rojo)
+        wb.add_named_style(estilo_sem)
+        wb.add_named_style(estilo_sem_rojo)
+        wb.add_named_style(fondo_gris)
+        wb.add_named_style(manyana)
+        wb.add_named_style(tarde)
+        wb.add_named_style(festivo)
+        wb.add_named_style(fg)
+        wb.add_named_style(vacaciones)
 
     # Crea una nueva hoja con el nombre del mes y año.
     wb.create_sheet(title=mes, index=MESES.index(mes))
@@ -243,13 +257,13 @@ def formatea_excel():
         wb[sheet].column_dimensions['B'].width = 15
         # Fusiona las celdas para el nombre del mes
         wb[sheet].merge_cells('A1:B2')
-        wb[sheet]['A1'].style = titulo
+        wb[sheet]['A1'].style = 'titulo'
 
         # Lineas impares en gris
         for fila in range(3, 3 + NUM_AGENTES):
             if fila % 2 != 0:
                 for celda in wb[sheet][fila]:
-                    celda.style = fondo_gris
+                    celda.style = 'fondo_gris'
 
         # Nombres y apellidos en negrita
         for fila in range(3, 3+ NUM_AGENTES):
@@ -264,15 +278,15 @@ def formatea_excel():
                 if fila == 1: # Día del mes
                     dia_mes = wb[sheet][f'{letra_col}{fila}']
                     if dia_mes.value.weekday() == 5 or dia_mes.value.weekday() == 6:
-                        dia_mes.style = estilo_mes_rojo
+                        dia_mes.style = 'estilo_mes_rojo'
                     else:
-                        dia_mes.style = estilo_mes
+                        dia_mes.style = 'estilo_mes'
                 elif fila == 2: # Día de la semana
                     dia_semana = wb[sheet][f'{letra_col}{fila}']
                     if dia_semana.value.weekday() == 5 or dia_semana.value.weekday() == 6:
-                        dia_semana.style = estilo_sem_rojo
+                        dia_semana.style = 'estilo_sem_rojo'
                     else:
-                        dia_semana.style = estilo_sem
+                        dia_semana.style = 'estilo_sem'
                 else:
                     wb[sheet][f'{letra_col}{fila}'].alignment = centrado
 
@@ -295,8 +309,8 @@ def pinta_festivos():
         nombre_hoja = fecha.strftime('%B %Y').upper()
         ws = wb[nombre_hoja]
         columna = int(fecha.strftime('%d')) + 2
-        ws.cell(column=columna, row= 1).style = 'dia_mes_rojo'
-        ws.cell(column=columna, row= 2).style = 'dia_sem_rojo'
+        ws.cell(column=columna, row= 1).style = 'estilo_mes_rojo'
+        ws.cell(column=columna, row= 2).style = 'estilo_sem_rojo'
         
     wb.save(NOMBRE_EXCEL)
 
@@ -332,8 +346,8 @@ def pinta_turnos():
 
 def main():
     # txt_a_excel()
-    # formatea_excel()
-    # pinta_festivos()
+    formatea_excel()
+    pinta_festivos()
     pinta_turnos()
 
 
