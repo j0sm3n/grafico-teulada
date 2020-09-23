@@ -1,9 +1,11 @@
 .vscode/settings.json
 *.xlsx
 .DS_Store
-pruebas.py
 notas.md
 *.swp
 *.db
 *.pdf
 turnos.txt
+/turnos.csv
+/turnos copia.csv
+/.idea/
